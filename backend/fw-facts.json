@@ -1,0 +1,20 @@
+{
+ "angularCli": false,
+ "private": true,
+ "scripts": [
+  "dev",
+  "build",
+  "preview"
+ ],
+ "peerDeps": [],
+ "directDeps": [
+  "axios",
+  "react",
+  "react-dom",
+  "react-router-dom"
+ ],
+ "devDeps": [
+  "@vitejs/plugin-react",
+  "vite"
+ ]
+}
