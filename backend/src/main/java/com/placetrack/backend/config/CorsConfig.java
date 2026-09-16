@@ -1,0 +1,39 @@
+package com.placetrack.backend.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+import java.util.List;
+
+@Configuration
+public class CorsConfig {
+
+    @Bean
+    public CorsFilter corsFilter() {
+        CorsConfiguration corsConfiguration = new CorsConfiguration();
+        corsConfiguration.setAllowCredentials(false);
+        corsConfiguration.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://localhost:3000"
+        ));
+        corsConfiguration.setAllowedHeaders(List.of(
+                "Origin", "Content-Type", "Accept", "Authorization",
+                "X-Requested-With", "X-Auth-Token", "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
+        corsConfiguration.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+        ));
+        corsConfiguration.setExposedHeaders(List.of(
+                "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"
+        ));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", corsConfiguration);
+
+        return new CorsFilter(source);
+    }
+}

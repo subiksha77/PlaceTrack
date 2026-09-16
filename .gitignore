@@ -1,0 +1,9 @@
+﻿
+backend/smoke-*.json
+backend/fw-facts.json
+backend/restart.out
+backend/run-backend.cmd
+backend/mvnw
+backend/mvnw.cmd
+backend/*.cmd
+
