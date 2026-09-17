@@ -1,0 +1,1583 @@
+{
+  "info": {
+    "_postman_id": "3e5a1c9e-8f7b-4d2a-b6c4-9d1e7f3a5b28",
+    "name": "PlaceTrack API",
+    "description": "Postman collection for the PlaceTrack Placement Management System (Spring Boot backend).\n\nBase URL: {{baseUrl}} (default http://localhost:8080).\n\nAUTHENTICATION: the backend uses a DB-backed session token sent in the X-Auth-Token header (no Bearer scheme). Run 'Authentication > Login' (or Register) first - its test script saves the returned token field into the {{token}} collection variable, which every protected request uses automatically.\n\nERRORS: validation errors return 400 with a fieldErrors map; unknown ids return 404; missing/expired tokens return 401; duplicate emails return 409.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Aarav Sharma\",\n  \"email\": \"aarav.sharma@college.edu\",\n  \"password\": \"ChangeMe#2026\",\n  \"department\": \"CSE\",\n  \"year\": 4,\n  \"role\": \"STUDENT\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": [ "{{baseUrl}}" ], "path": [ "api", "auth", "register" ] },
+            "description": "POST /api/auth/register - creates an account (password is BCrypt-hashed) and returns a UserResponse containing the session token. Roles: STUDENT (default), PLACEMENT_OFFICER or ADMIN. Duplicate email returns 409."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Register returns 201 Created', function () { pm.response.to.have.status(201); });",
+                  "var body = pm.response.json();",
+                  "pm.test('Register returns user fields and token', function () {",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body).to.have.property('email');",
+                  "  pm.expect(body).to.have.property('token');",
+                  "});",
+                  "if (pm.response.code === 201 && body.token) { pm.collectionVariables.set('token', body.token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"aarav.sharma@college.edu\",\n  \"password\": \"ChangeMe#2026\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": [ "{{baseUrl}}" ], "path": [ "api", "auth", "login" ] },
+            "description": "POST /api/auth/login - verifies credentials and returns a UserResponse whose token field is the session token. Wrong credentials return 401."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "var body = pm.response.json();",
+                  "pm.test('Login response has token', function () {",
+                  "  pm.expect(body).to.have.property('token');",
+                  "  pm.expect(body.token).to.not.be.empty;",
+                  "});",
+                  "if (pm.response.code === 200 && body.token) { pm.collectionVariables.set('token', body.token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": [ "{{baseUrl}}" ], "path": [ "api", "auth", "logout" ] },
+            "description": "POST /api/auth/logout - invalidates the session token sent in the X-Auth-Token header. Returns 204 No Content."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Logout returns 204 No Content', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Students",
+      "item": [
+        {
+          "name": "Create Student",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentName\": \"Aarav Sharma\",\n  \"email\": \"aarav.sharma@college.edu\",\n  \"department\": \"CSE\",\n  \"year\": 4,\n  \"cgpa\": 8.6,\n  \"phone\": \"9876543210\",\n  \"registerNumber\": \"72152214001\",\n  \"degree\": \"B.Tech\",\n  \"dateOfBirth\": \"2003-05-14\",\n  \"gender\": \"MALE\",\n  \"location\": \"Chennai\",\n  \"city\": \"Chennai\",\n  \"state\": \"Tamil Nadu\",\n  \"skills\": \"Java, Spring Boot, SQL, React\",\n  \"graduationYear\": 2026,\n  \"tenthPercentage\": 88.5,\n  \"twelfthPercentage\": 91.2,\n  \"backlogs\": 0,\n  \"linkedIn\": \"https://linkedin.com/in/aarav-sharma\",\n  \"gitHub\": \"https://github.com/aarav-sharma\",\n  \"codingProfiles\": \"https://leetcode.com/aarav\",\n  \"achievements\": \"Winner, college hackathon 2024\",\n  \"placementStatus\": \"NOT_PLACED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/students", "host": [ "{{baseUrl}}" ], "path": [ "api", "students" ] },
+            "description": "POST /api/students - creates a student. Required: studentName, email, department, year (1-4). placementStatus: PLACED or NOT_PLACED (default NOT_PLACED). Duplicate email returns 409."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Student returns 201 Created', function () { pm.response.to.have.status(201); });",
+                  "var body = pm.response.json();",
+                  "pm.test('Created student has id and email', function () {",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Students",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/students", "host": [ "{{baseUrl}}" ], "path": [ "api", "students" ] },
+            "description": "GET /api/students - returns all students. Use 'Search & Filter Students' for query parameters."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get All Students returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Student By ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/students/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "students", "1" ] },
+            "description": "GET /api/students/{id} - returns one student. Replace 1 with a real student id. Unknown id returns 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Student By ID returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Student has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Student",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentName\": \"Aarav Sharma\",\n  \"email\": \"aarav.sharma@college.edu\",\n  \"department\": \"CSE\",\n  \"year\": 4,\n  \"cgpa\": 8.8,\n  \"phone\": \"9876543210\",\n  \"skills\": \"Java, Spring Boot, SQL, React, Docker\",\n  \"graduationYear\": 2026,\n  \"backlogs\": 0,\n  \"placementStatus\": \"PLACED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/students/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "students", "1" ] },
+            "description": "PUT /api/students/{id} - updates the student. If the email changes to one that already exists, returns 409. Replace 1 with a real student id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Student returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated student has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Student",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/students/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "students", "1" ] },
+            "description": "DELETE /api/students/{id} - deletes the student and returns a message. Deletion is blocked with 400 while placement records exist for the student. Replace 1 with a real student id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Student returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Delete returns message', function () { pm.expect(pm.response.json()).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search & Filter Students",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/students?search=aarav&department=CSE&status=NOT_PLACED",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "students" ],
+              "query": [
+                { "key": "search", "value": "aarav", "description": "Optional keyword matched against name/email/department" },
+                { "key": "department", "value": "CSE", "description": "Optional exact department filter" },
+                { "key": "status", "value": "NOT_PLACED", "description": "Optional: PLACED or NOT_PLACED" }
+              ]
+            },
+            "description": "GET /api/students?search=&department=&status= - all query parameters are optional; combine them freely."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Search & Filter Students returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Companies",
+      "item": [
+        {
+          "name": "Create Company",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Zeta Systems\",\n  \"industry\": \"IT Services & Consulting\",\n  \"website\": \"https://www.zetasystems.example.com\",\n  \"location\": \"Chennai\",\n  \"headquarters\": \"Bengaluru\",\n  \"companySize\": \"500-1000 employees\",\n  \"active\": true,\n  \"description\": \"Product engineering company hiring final-year students.\",\n  \"contactPerson\": \"Priya Nair\",\n  \"contactEmail\": \"careers@zetasystems.example.com\",\n  \"jobRole\": \"Software Engineer\",\n  \"packageLpa\": 6.5,\n  \"driveEligibilityCgpa\": 7.0,\n  \"driveDate\": \"2026-03-10\",\n  \"applicationDeadline\": \"2026-02-25\",\n  \"driveLocation\": \"Chennai\",\n  \"selectionProcess\": \"Aptitude test, technical interview, HR interview\",\n  \"driveDescription\": \"Campus recruitment drive for final-year students\",\n  \"driveStatus\": \"UPCOMING\",\n  \"driveEligibilitySummary\": \"CGPA >= 7.0, no active backlogs\",\n  \"logoUrl\": \"https://www.zetasystems.example.com/logo.png\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/companies", "host": [ "{{baseUrl}}" ], "path": [ "api", "companies" ] },
+            "description": "POST /api/companies - creates a company. Required: name, location. driveStatus: OPEN, CLOSED, COMPLETED or UPCOMING."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Company returns 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Created company has id and name', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Companies",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/companies", "host": [ "{{baseUrl}}" ], "path": [ "api", "companies" ] },
+            "description": "GET /api/companies - returns all companies. Use 'Search Companies' for the optional search parameter."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get All Companies returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Company By ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/companies/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "companies", "1" ] },
+            "description": "GET /api/companies/{id} - returns one company. Replace 1 with a real company id. Unknown id returns 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Company By ID returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Company has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search Companies",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/companies?search=zeta",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "companies" ],
+              "query": [
+                { "key": "search", "value": "zeta", "description": "Optional keyword matched against company fields" }
+              ]
+            },
+            "description": "GET /api/companies?search= - when the search parameter is present the results are filtered; omit it to get all companies."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Search Companies returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Company",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Zeta Systems\",\n  \"industry\": \"IT Services & Consulting\",\n  \"location\": \"Chennai\",\n  \"active\": true,\n  \"jobRole\": \"Software Engineer\",\n  \"packageLpa\": 7.0,\n  \"driveEligibilityCgpa\": 7.0,\n  \"driveDate\": \"2026-03-12\",\n  \"applicationDeadline\": \"2026-02-28\",\n  \"driveLocation\": \"Chennai\",\n  \"driveStatus\": \"UPCOMING\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/companies/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "companies", "1" ] },
+            "description": "PUT /api/companies/{id} - updates the company. Required: name, location. Replace 1 with a real company id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Company returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated company has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Company",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/companies/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "companies", "1" ] },
+            "description": "DELETE /api/companies/{id} - deletes the company and returns a message. Replace 1 with a real company id. Unknown id returns 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Company returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Delete returns message', function () { pm.expect(pm.response.json()).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Company Statistics",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/companies/stats", "host": [ "{{baseUrl}}" ], "path": [ "api", "companies", "stats" ] },
+            "description": "GET /api/companies/stats - computed from the database: totalCompanies, activeDrives, upcomingDrives, eligibleOpportunities, averageStudentCgpa."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Company Statistics returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Stats has expected keys', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('totalCompanies');",
+                  "  pm.expect(body).to.have.property('activeDrives');",
+                  "  pm.expect(body).to.have.property('upcomingDrives');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Placement Drives",
+      "item": [
+        {
+          "name": "Create Drive",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyId\": 1,\n  \"jobOpportunityId\": 1,\n  \"jobRole\": \"Software Engineer\",\n  \"packageLpa\": 6.5,\n  \"minCgpa\": 7.0,\n  \"eligibleDepartments\": \"CSE, IT, ECE\",\n  \"eligibleYear\": \"4\",\n  \"graduationYear\": \"2026\",\n  \"allowedBacklogs\": 0,\n  \"requiredSkills\": \"Java, SQL\",\n  \"preferredSkills\": \"Spring Boot\",\n  \"driveDate\": \"2026-03-10\",\n  \"applicationDeadline\": \"2026-02-25\",\n  \"workLocation\": \"Chennai\",\n  \"selectionProcess\": \"Aptitude test, technical interview, HR interview\",\n  \"status\": \"OPEN\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/placement-drives", "host": [ "{{baseUrl}}" ], "path": [ "api", "placement-drives" ] },
+            "description": "POST /api/placement-drives - creates a drive linked to an existing company and job opportunity. Required: companyId, jobOpportunityId, driveDate, applicationDeadline. The same routes are also exposed under /api/drives."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Drive returns 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Created drive has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Drives",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/placement-drives", "host": [ "{{baseUrl}}" ], "path": [ "api", "placement-drives" ] },
+            "description": "GET /api/placement-drives - returns all drives. Add ?upcoming=true to list only upcoming drives."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get All Drives returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Drive By ID",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/placement-drives/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "placement-drives", "1" ] },
+            "description": "GET /api/placement-drives/{id} - returns one drive. Replace 1 with a real drive id. Unknown id returns 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Drive By ID returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Drive has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Drive",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyId\": 1,\n  \"jobOpportunityId\": 1,\n  \"jobRole\": \"Software Engineer\",\n  \"packageLpa\": 7.0,\n  \"minCgpa\": 7.0,\n  \"driveDate\": \"2026-03-12\",\n  \"applicationDeadline\": \"2026-02-28\",\n  \"workLocation\": \"Chennai\",\n  \"status\": \"OPEN\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/placement-drives/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "placement-drives", "1" ] },
+            "description": "PUT /api/placement-drives/{id} - updates the drive. Replace 1 with a real drive id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Drive returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated drive has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Drive",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/placement-drives/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "placement-drives", "1" ] },
+            "description": "DELETE /api/placement-drives/{id} - deletes the drive. Returns 204 No Content. Replace 1 with a real drive id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Drive returns 204 No Content', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upcoming Drives",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": {
+              "raw": "{{baseUrl}}/api/placement-drives?upcoming=true",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "placement-drives" ],
+              "query": [
+                { "key": "upcoming", "value": "true", "description": "true returns only drives with a future drive date" }
+              ]
+            },
+            "description": "GET /api/placement-drives?upcoming=true - lists drives scheduled in the future. Omit the parameter to list all drives."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Upcoming Drives returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Drives By Company",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/placement-drives/by-company/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "placement-drives", "by-company", "1" ] },
+            "description": "GET /api/placement-drives/by-company/{companyId} - lists all drives for one company. Replace 1 with a real company id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Drives By Company returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Job Opportunities",
+      "item": [
+        {
+          "name": "Create Job",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyId\": 1,\n  \"jobRole\": \"Backend Developer\",\n  \"jobDescription\": \"Develop and maintain REST APIs with Spring Boot.\",\n  \"packageLpa\": 7.5,\n  \"jobType\": \"FULL_TIME\",\n  \"workLocation\": \"Bengaluru\",\n  \"minCgpa\": 7.0,\n  \"eligibleDepartments\": \"CSE, IT\",\n  \"eligibleYear\": \"4\",\n  \"graduationYear\": \"2026\",\n  \"allowedBacklogs\": 0,\n  \"requiredSkills\": \"Java, Spring Boot, MySQL\",\n  \"preferredSkills\": \"Docker, Kafka\",\n  \"driveDate\": \"2026-03-12\",\n  \"applicationDeadline\": \"2026-02-28\",\n  \"selectionProcess\": \"Online assessment, 2 technical rounds, HR round\",\n  \"status\": \"OPEN\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/jobs", "host": [ "{{baseUrl}}" ], "path": [ "api", "jobs" ] },
+            "description": "POST /api/jobs - creates a job opportunity for an existing company. Required: companyId, jobRole. jobType: FULL_TIME, INTERNSHIP, CONTRACT, CONTRACT_INTERNSHIP, WFH or OTHER. status: OPEN, CLOSED, CANCELLED or COMPLETED."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Job returns 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Created job has id and jobRole', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body).to.have.property('jobRole');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Jobs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/jobs", "host": [ "{{baseUrl}}" ], "path": [ "api", "jobs" ] },
+            "description": "GET /api/jobs - returns all job opportunities. Use 'Search & Filter Jobs' for query parameters."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get All Jobs returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Job By ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/jobs/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "jobs", "1" ] },
+            "description": "GET /api/jobs/{id} - returns one job opportunity. Replace 1 with a real job id. Unknown id returns 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Job By ID returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Job has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyId\": 1,\n  \"jobRole\": \"Backend Developer\",\n  \"packageLpa\": 8.0,\n  \"jobType\": \"FULL_TIME\",\n  \"workLocation\": \"Bengaluru\",\n  \"minCgpa\": 7.0,\n  \"allowedBacklogs\": 0,\n  \"requiredSkills\": \"Java, Spring Boot, MySQL, Docker\",\n  \"status\": \"OPEN\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/jobs/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "jobs", "1" ] },
+            "description": "PUT /api/jobs/{id} - updates the job opportunity. Required: companyId, jobRole. Replace 1 with a real job id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Job returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated job has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/jobs/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "jobs", "1" ] },
+            "description": "DELETE /api/jobs/{id} - deletes the job opportunity and returns a message. Replace 1 with a real job id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Job returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Delete returns message', function () { pm.expect(pm.response.json()).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search & Filter Jobs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs?search=developer&status=OPEN",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "jobs" ],
+              "query": [
+                { "key": "search", "value": "developer", "description": "Optional keyword matched against job fields" },
+                { "key": "status", "value": "OPEN", "description": "Optional: OPEN, CLOSED, CANCELLED or COMPLETED" }
+              ]
+            },
+            "description": "GET /api/jobs?search=&status= - both query parameters are optional."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Search & Filter Jobs returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Jobs By Company",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/jobs/company/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "jobs", "company", "1" ] },
+            "description": "GET /api/jobs/company/{companyId} - lists all job opportunities for one company. Replace 1 with a real company id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Jobs By Company returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Placements",
+      "item": [
+        {
+          "name": "Create Placement",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student\": { \"id\": 1 },\n  \"company\": { \"id\": 1 },\n  \"jobRole\": \"Software Engineer\",\n  \"packageLpa\": 6.5,\n  \"placementDate\": \"2026-03-20\",\n  \"status\": \"SELECTED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/placements", "host": [ "{{baseUrl}}" ], "path": [ "api", "placements" ] },
+            "description": "POST /api/placements - records a placement for an existing student and company (pass only their ids). Required: student.id, company.id, jobRole, packageLpa, placementDate (YYYY-MM-DD). status: SELECTED, REJECTED or PENDING (default SELECTED)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Placement returns 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Created placement has id and status', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Placements",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/placements", "host": [ "{{baseUrl}}" ], "path": [ "api", "placements" ] },
+            "description": "GET /api/placements - returns all placements. Use 'Filter Placements' for query parameters."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get All Placements returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Placement By ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/placements/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "placements", "1" ] },
+            "description": "GET /api/placements/{id} - returns one placement. Replace 1 with a real placement id. Unknown id returns 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Placement By ID returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Placement has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Placement",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student\": { \"id\": 1 },\n  \"company\": { \"id\": 1 },\n  \"jobRole\": \"Software Engineer\",\n  \"packageLpa\": 7.0,\n  \"placementDate\": \"2026-03-20\",\n  \"status\": \"SELECTED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/placements/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "placements", "1" ] },
+            "description": "PUT /api/placements/{id} - updates the placement. Replace 1 with a real placement id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Placement returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated placement has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Placement",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/placements/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "placements", "1" ] },
+            "description": "DELETE /api/placements/{id} - deletes the placement and returns a message. Replace 1 with a real placement id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Placement returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Delete returns message', function () { pm.expect(pm.response.json()).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Placements",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/placements?status=SELECTED&companyId=1",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "api", "placements" ],
+              "query": [
+                { "key": "status", "value": "SELECTED", "description": "Optional: SELECTED, REJECTED or PENDING" },
+                { "key": "companyId", "value": "1", "description": "Optional company id to filter by" }
+              ]
+            },
+            "description": "GET /api/placements?status=&companyId= - both query parameters are optional."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Filter Placements returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile" ] },
+            "description": "GET /api/profile - returns the logged-in student's complete placement profile (ProfileResponse), including skillList, projects, certifications, internships, resume info and the completeness checklist. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Profile returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Profile has expected fields', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('studentName');",
+                  "  pm.expect(body).to.have.property('email');",
+                  "  pm.expect(body).to.have.property('skillList');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentName\": \"Aarav Sharma\",\n  \"phone\": \"9876543210\",\n  \"skills\": \"Java, Spring Boot, SQL, React\",\n  \"cgpa\": 8.6,\n  \"graduationYear\": 2026,\n  \"tenthPercentage\": 88.5,\n  \"twelfthPercentage\": 91.2,\n  \"backlogs\": 0,\n  \"registerNumber\": \"72152214001\",\n  \"degree\": \"B.Tech\",\n  \"dateOfBirth\": \"2003-05-14\",\n  \"gender\": \"MALE\",\n  \"location\": \"Chennai\",\n  \"address\": \"12 Gandhi Street, Adyar\",\n  \"city\": \"Chennai\",\n  \"state\": \"Tamil Nadu\",\n  \"linkedIn\": \"https://linkedin.com/in/aarav-sharma\",\n  \"gitHub\": \"https://github.com/aarav-sharma\",\n  \"codingProfiles\": \"https://leetcode.com/aarav\",\n  \"achievements\": \"Winner, college hackathon 2024\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile" ] },
+            "description": "PUT /api/profile - updates the logged-in student's own profile basics. Required: studentName. phone must match a 10-digit Indian mobile (^[6-9]\\d{9}$); gender: MALE, FEMALE or OTHER. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Profile returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated profile has studentName', function () { pm.expect(pm.response.json()).to.have.property('studentName'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Skills",
+      "item": [
+        {
+          "name": "Add Skill",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Spring Boot\",\n  \"proficiency\": \"ADVANCED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile/skills", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "skills" ] },
+            "description": "POST /api/profile/skills - adds a skill to the logged-in student. Required: name; proficiency: BASIC, INTERMEDIATE or ADVANCED. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Add Skill returns 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Skill has id and name', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Skills",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile/skills", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "skills" ] },
+            "description": "GET /api/profile/skills - returns the logged-in student's skills. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Skills returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Skill",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Spring Boot\",\n  \"proficiency\": \"INTERMEDIATE\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile/skills/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "skills", "1" ] },
+            "description": "PUT /api/profile/skills/{id} - updates a skill of the logged-in student. Replace 1 with a real skill id. Unknown id returns 404."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Skill returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated skill has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Skill",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile/skills/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "skills", "1" ] },
+            "description": "DELETE /api/profile/skills/{id} - deletes a skill of the logged-in student. Returns 204 No Content. Replace 1 with a real skill id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Skill returns 204 No Content', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Add Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"PlaceTrack\",\n  \"description\": \"Placement management platform with student, company and placement modules.\",\n  \"techStack\": \"Java, Spring Boot, React, MySQL\",\n  \"startDate\": \"2025-08-01\",\n  \"endDate\": \"2026-01-31\",\n  \"githubLink\": \"https://github.com/aarav-sharma/placetrack\",\n  \"liveDemoLink\": \"https://placetrack-demo.example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile/projects", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "projects" ] },
+            "description": "POST /api/profile/projects - adds a project to the logged-in student. Required: name. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Add Project returns 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Project has id and name', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Projects",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile/projects", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "projects" ] },
+            "description": "GET /api/profile/projects - returns the logged-in student's projects. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Projects returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"PlaceTrack\",\n  \"description\": \"Placement management platform with student, company and placement modules.\",\n  \"techStack\": \"Java, Spring Boot, React, MySQL, Docker\",\n  \"startDate\": \"2025-08-01\",\n  \"endDate\": \"2026-01-31\",\n  \"githubLink\": \"https://github.com/aarav-sharma/placetrack\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile/projects/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "projects", "1" ] },
+            "description": "PUT /api/profile/projects/{id} - updates a project of the logged-in student. Required: name. Replace 1 with a real project id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Project returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated project has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile/projects/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "projects", "1" ] },
+            "description": "DELETE /api/profile/projects/{id} - deletes a project of the logged-in student. Returns 204 No Content. Replace 1 with a real project id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Project returns 204 No Content', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Certifications",
+      "item": [
+        {
+          "name": "Add Certification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AWS Certified Cloud Practitioner\",\n  \"issuer\": \"Amazon Web Services\",\n  \"issueDate\": \"2025-06-15\",\n  \"expiryDate\": \"2028-06-15\",\n  \"credentialId\": \"AWS-CCP-98214\",\n  \"credentialUrl\": \"https://aws.amazon.com/verification\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile/certifications", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "certifications" ] },
+            "description": "POST /api/profile/certifications - adds a certification to the logged-in student. Required: name. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Add Certification returns 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Certification has id and name', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Certifications",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile/certifications", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "certifications" ] },
+            "description": "GET /api/profile/certifications - returns the logged-in student's certifications. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Certifications returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Certification",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"AWS Certified Cloud Practitioner\",\n  \"issuer\": \"Amazon Web Services\",\n  \"issueDate\": \"2025-06-15\",\n  \"credentialId\": \"AWS-CCP-98214\",\n  \"credentialUrl\": \"https://aws.amazon.com/verification\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile/certifications/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "certifications", "1" ] },
+            "description": "PUT /api/profile/certifications/{id} - updates a certification of the logged-in student. Required: name. Replace 1 with a real certification id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Certification returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated certification has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Certification",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile/certifications/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "certifications", "1" ] },
+            "description": "DELETE /api/profile/certifications/{id} - deletes a certification of the logged-in student. Returns 204 No Content. Replace 1 with a real certification id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Certification returns 204 No Content', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Internships",
+      "item": [
+        {
+          "name": "Add Internship",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"TechWave Solutions\",\n  \"role\": \"Software Development Intern\",\n  \"startDate\": \"2025-05-20\",\n  \"endDate\": \"2025-08-20\",\n  \"stipend\": 15000,\n  \"location\": \"Chennai\",\n  \"description\": \"Built internal REST APIs with Spring Boot and contributed to the admin dashboard.\",\n  \"certificateLink\": \"https://drive.example.com/internship-certificate\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile/internships", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "internships" ] },
+            "description": "POST /api/profile/internships - adds an internship to the logged-in student. Required: company, role. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Add Internship returns 201 Created', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Internship has id, company and role', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body).to.have.property('company');",
+                  "  pm.expect(body).to.have.property('role');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Internships",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile/internships", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "internships" ] },
+            "description": "GET /api/profile/internships - returns the logged-in student's internships. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Internships returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Internship",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Auth-Token", "value": "{{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"TechWave Solutions\",\n  \"role\": \"Backend Development Intern\",\n  \"startDate\": \"2025-05-20\",\n  \"endDate\": \"2025-08-20\",\n  \"stipend\": 20000,\n  \"location\": \"Chennai\",\n  \"description\": \"Built internal REST APIs with Spring Boot and contributed to the admin dashboard.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile/internships/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "internships", "1" ] },
+            "description": "PUT /api/profile/internships/{id} - updates an internship of the logged-in student. Required: company, role. Replace 1 with a real internship id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update Internship returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Updated internship has id', function () { pm.expect(pm.response.json()).to.have.property('id'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Internship",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile/internships/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "internships", "1" ] },
+            "description": "DELETE /api/profile/internships/{id} - deletes an internship of the logged-in student. Returns 204 No Content. Replace 1 with a real internship id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Internship returns 204 No Content', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Resume",
+      "item": [
+        {
+          "name": "Upload Resume",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "PDF/DOC/DOCX resume file (max 5 MB). Select the file in Postman before sending."
+                }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/api/profile/resume", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "resume" ] },
+            "description": "POST /api/profile/resume - uploads the logged-in student's resume (multipart/form-data). Returns a message plus fileName/fileType/fileSize/resumeCount/totalResumes. Requires a valid X-Auth-Token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Upload Resume returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Upload returns fileName and resumeCount', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('fileName');",
+                  "  pm.expect(body).to.have.property('resumeCount');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download Resume",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile/resume/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "resume", "1" ] },
+            "description": "GET /api/profile/resume/{resumeId} - downloads one of the logged-in student's resumes as a file (application/pdf or octet-stream). Use 'Get Profile' to see the resume ids. Replace 1 with a real resume id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Download Resume returns 200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Resume",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "X-Auth-Token", "value": "{{token}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/profile/resume/1", "host": [ "{{baseUrl}}" ], "path": [ "api", "profile", "resume", "1" ] },
+            "description": "DELETE /api/profile/resume/{resumeId} - deletes one of the logged-in student's resumes. Returns 200 with a message. Replace 1 with a real resume id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Delete Resume returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Delete returns message', function () { pm.expect(pm.response.json()).to.have.property('message'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Statistics",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/dashboard", "host": [ "{{baseUrl}}" ], "path": [ "api", "dashboard" ] },
+            "description": "GET /api/dashboard - placement statistics computed from the database: totalStudents, totalCompanies, totalPlacements, totalPlaced, totalNotPlaced, recentPlacements (top 10, newest first)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Dashboard Statistics returns 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Dashboard has expected stats keys', function () {",
+                  "  var body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('totalStudents');",
+                  "  pm.expect(body).to.have.property('totalCompanies');",
+                  "  pm.expect(body).to.have.property('totalPlacements');",
+                  "  pm.expect(body).to.have.property('totalPlaced');",
+                  "  pm.expect(body).to.have.property('totalNotPlaced');",
+                  "  pm.expect(body).to.have.property('recentPlacements');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
