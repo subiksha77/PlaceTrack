@@ -42,6 +42,8 @@ function Sidebar({ user, onLogout }) {
           { path: '/students', label: 'Students', icon: '🎓' },
           { path: '/companies', label: 'Companies', icon: '🏢' },
           { path: '/placements', label: 'Placements', icon: '📋' },
+          { path: '/jobs', label: 'Jobs', icon: '💼' },
+          { path: '/drives', label: 'Drives', icon: '🚀' },
           { path: '/profile', label: 'My Profile', icon: '👤' },
         ].map((item) => (
           <button

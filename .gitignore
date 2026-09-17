@@ -1,1 +1,39 @@
-﻿
+# --- Dependencies / build output ---
+node_modules/
+dist/
+build/
+target/
+*.class
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+*.iml
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Logs / temp / scratch ---
+*.log
+*.out
+*.tmp
+smoke-*.json
+fw-facts.json
+audit-*.txt
+validation-result.txt
+cssdiff.txt
+cls.txt
+nh.txt
+
+# --- Runtime data ---
+uploads/
+backend/uploads/
+
+# --- OS ---
+desktop.ini
+$RECYCLE.BIN/

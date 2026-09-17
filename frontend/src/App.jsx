@@ -8,6 +8,9 @@ import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
 import Companies from './pages/Companies';
 import Placements from './pages/Placements';
+import Profile from './pages/Profile';
+import Jobs from './pages/Jobs';
+import PlacementDrives from './pages/PlacementDrives';
 import { authService } from './services/authService';
 
 function App() {
@@ -51,6 +54,9 @@ function App() {
                     <Route path="/students" element={<Students showToast={showToast} />} />
                     <Route path="/companies" element={<Companies showToast={showToast} />} />
                     <Route path="/placements" element={<Placements showToast={showToast} />} />
+                    <Route path="/jobs" element={<Jobs showToast={showToast} user={user} />} />
+                    <Route path="/drives" element={<PlacementDrives showToast={showToast} user={user} />} />
+                    <Route path="/profile" element={<Profile showToast={showToast} user={user} />} />
                   </Routes>
                 </div>
               </div>
